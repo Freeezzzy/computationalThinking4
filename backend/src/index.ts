@@ -1,10 +1,13 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { objects } from './routes/objects.js'
 
 const PORT = 3001
 
 const app = new Hono()
+// The frontend runs on another port, so the browser only lets it call us if we allow it.
+app.use('*', cors({ origin: 'http://localhost:3000' }))
 app.route('/objects', objects)
 
 serve({ fetch: app.fetch, port: PORT }, () => {

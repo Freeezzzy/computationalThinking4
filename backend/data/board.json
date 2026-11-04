@@ -1,1 +1,67 @@
-[]
+[
+  {
+    "id": "note-1",
+    "type": "sticky-note",
+    "x": 96,
+    "y": 120,
+    "width": 192,
+    "height": 192,
+    "text": "Hello, board!",
+    "color": "yellow",
+    "fontSize": 18,
+    "bold": false
+  },
+  {
+    "id": "note-2",
+    "type": "sticky-note",
+    "x": 360,
+    "y": 120,
+    "width": 192,
+    "height": 192,
+    "text": "Drag me around",
+    "color": "pink",
+    "fontSize": 18,
+    "bold": false
+  },
+  {
+    "id": "text-1",
+    "type": "text",
+    "x": 600,
+    "y": 120,
+    "width": 240,
+    "height": 72,
+    "text": "Just some text",
+    "fontSize": 18,
+    "bold": false
+  },
+  {
+    "x": 96,
+    "y": 360,
+    "width": 192,
+    "height": 192,
+    "text": "Test",
+    "fontSize": 18,
+    "bold": false,
+    "type": "sticky-note",
+    "color": "green",
+    "id": "9e15a027-1691-4307-8271-036e02123a56"
+  },
+  {
+    "x": 360,
+    "y": 360,
+    "width": 144,
+    "height": 144,
+    "type": "circle",
+    "color": "purple",
+    "id": "53b9fa3c-2986-4c4f-9e94-9cc95e2bc6f0"
+  },
+  {
+    "x": 576,
+    "y": 480,
+    "width": 144,
+    "height": 144,
+    "type": "circle",
+    "color": "orange",
+    "id": "ee643f38-5b57-4d0a-bc44-c14effe7e0e8"
+  }
+]
