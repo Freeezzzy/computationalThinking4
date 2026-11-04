@@ -1,0 +1,17 @@
+info:
+  name: Patch object
+  type: http
+  seq: 3
+
+http:
+  method: PATCH
+  url: http://localhost:3001/objects/note-1
+  body:
+    type: json
+    data: |-
+      {
+        "x": 240
+      }
+
+settings:
+  encodeUrl: true

@@ -11,7 +11,9 @@ objects.get('/', async c => c.json(await readObjects()))
 objects.post('/', async (c) => {
   const object = await c.req.json<BoardObject>()
   if (typeof object.id !== 'string') return c.json({ error: 'id fehlt' }, 400)
-  await writeObjects([...await readObjects(), object])
+  const all = await readObjects()
+  if (all.some(existing => existing.id === object.id)) return c.json({ error: 'Objekt existiert bereits' }, 409)
+  await writeObjects([...all, object])
   return c.json(object, 201)
 })
 
