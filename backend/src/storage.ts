@@ -1,42 +1,51 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { createClient } from '@supabase/supabase-js'
 
 // The backend treats objects as plain JSON; it only relies on every object having an id.
 export type BoardObject = { id: string } & Record<string, unknown>
 
-const FILE = new URL('../data/board.json', import.meta.url).pathname
+process.loadEnvFile(new URL('../.env', import.meta.url).pathname)
 
-// All objects live in memory and are written to the JSON file after every change.
-// This module is the only place that knows about the file; a database can replace it later.
-let objects: BoardObject[] = existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf-8')) : []
+// The secret key is only used here on the server and must never reach the browser.
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!)
 
-function save() {
-  mkdirSync(dirname(FILE), { recursive: true })
-  writeFileSync(FILE, JSON.stringify(objects, null, 2))
+// The frontend says fontSize, the table says font_size; every other field has the same name.
+function toRow(fields: Record<string, unknown>) {
+  const { fontSize, ...rest } = fields
+  return fontSize === undefined ? rest : { ...rest, font_size: fontSize }
+}
+
+// Columns a variant does not use (e.g. text on a circle) come back as null and are left out.
+function toObject(row: Record<string, unknown>) {
+  const { font_size, created_at, ...rest } = row
+  const object = Object.fromEntries(Object.entries(rest).filter(([, value]) => value !== null))
+  return (font_size === null ? object : { ...object, fontSize: font_size }) as BoardObject
 }
 
 export async function listObjects() {
-  return objects
+  const { data, error } = await supabase.from('objects').select().order('created_at')
+  if (error) throw error
+  return data.map(toObject)
 }
 
 export async function insertObject(object: BoardObject) {
-  objects = [...objects, object]
-  save()
-  return object
+  const { data, error } = await supabase.from('objects').insert(toRow(object)).select().single()
+  if (error) throw error
+  return toObject(data)
 }
 
 export async function updateObject(id: string, changes: Record<string, unknown>) {
-  const existing = objects.find(object => object.id === id)
-  if (!existing) return undefined
-  const updated = { ...existing, ...changes, id }
-  objects = objects.map(object => (object.id === id ? updated : object))
-  save()
-  return updated
+  const { data, error } = await supabase
+    .from('objects')
+    .update(toRow({ ...changes, id }))
+    .eq('id', id)
+    .select()
+    .maybeSingle()
+  if (error) throw error
+  return data ? toObject(data) : undefined
 }
 
 export async function deleteObject(id: string) {
-  const before = objects.length
-  objects = objects.filter(object => object.id !== id)
-  save()
-  return objects.length < before
+  const { data, error } = await supabase.from('objects').delete().eq('id', id).select()
+  if (error) throw error
+  return data.length > 0
 }
