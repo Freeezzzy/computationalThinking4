@@ -1,4 +1,5 @@
 import type { BoardObject, ObjectTemplate, Rect, StyleChanges, TextObject } from '~/types/canvas-object'
+import type { ApiRequest } from './useBoards'
 
 const TEXT_DEFAULTS = { text: '', fontSize: FONT_SIZES.M, bold: false }
 
@@ -22,14 +23,27 @@ const pendingChanges = new Map<string, { changes: ObjectChanges; timer: ReturnTy
 export function useBoard() {
   const api = $fetch.create({ baseURL: useRuntimeConfig().public.apiBase })
   const objects = useState<BoardObject[]>('objects', () => [])
+  const { currentBoardId, whenCreated } = useBoards()
+
+  // Requests name their board when they are made, so a change still reaches
+  // the right board if the user switches boards in the meantime.
+  async function send<T>(boardId: string, path: string, request: ApiRequest = {}) {
+    await whenCreated(boardId)
+    return api<T>(`/boards/${boardId}/objects${path}`, request)
+  }
 
   async function load() {
-    objects.value = await api<BoardObject[]>('/objects')
+    const boardId = currentBoardId.value
+    if (!boardId) return
+    objects.value = []
+    const loaded = await send<BoardObject[]>(boardId, '')
+    // Another board may have been opened while this one was loading.
+    if (boardId === currentBoardId.value) objects.value = loaded
   }
 
   function insert(object: BoardObject) {
     objects.value = [...objects.value, object]
-    api('/objects', { method: 'POST', body: object })
+    send(currentBoardId.value!, '', { method: 'POST', body: object })
   }
 
   function addObject(template: ObjectTemplate, centerX: number, centerY: number) {
@@ -52,7 +66,7 @@ export function useBoard() {
     clearTimeout(pendingChanges.get(id)?.timer)
     pendingChanges.delete(id)
     objects.value = objects.value.filter(object => object.id !== id)
-    api(`/objects/${id}`, { method: 'DELETE' })
+    send(currentBoardId.value!, `/${id}`, { method: 'DELETE' })
   }
 
   function updateObject(id: string, changes: ObjectChanges) {
@@ -65,9 +79,10 @@ export function useBoard() {
     const pending = pendingChanges.get(id)
     clearTimeout(pending?.timer)
     const merged = { ...pending?.changes, ...changes }
+    const boardId = currentBoardId.value!
     const timer = setTimeout(() => {
       pendingChanges.delete(id)
-      api(`/objects/${id}`, { method: 'PATCH', body: merged })
+      send(boardId, `/${id}`, { method: 'PATCH', body: merged })
     }, SAVE_DELAY)
     pendingChanges.set(id, { changes: merged, timer })
   }

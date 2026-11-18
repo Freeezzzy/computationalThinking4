@@ -11,13 +11,29 @@ const VARIANTS: Record<BoardObject['type'], Component> = {
 }
 
 const { objects, load, addObject, resizeObject, updateText, updateStyle } = useBoard()
-await callOnce(load)
+const { currentBoardId, loadBoards, getView, saveView } = useBoards()
+await callOnce(loadBoards)
 
 // Local UI state of this user; it is not part of the shared board state.
 const scale = ref(1)
 const offset = ref({ x: 0, y: 0 })
 const selectedId = ref<string | null>(null)
 const editingId = ref<string | null>(null)
+
+// Every board keeps its own zoom and position. Selection and editing belong to the board that was open.
+watch(currentBoardId, (boardId) => {
+  if (!boardId) return
+  const view = getView(boardId)
+  scale.value = view.scale
+  offset.value = { ...view.offset }
+  selectedId.value = null
+  editingId.value = null
+  load()
+}, { immediate: true })
+
+watch([scale, offset], () => {
+  if (currentBoardId.value) saveView(currentBoardId.value, { scale: scale.value, offset: offset.value })
+})
 
 const gesture = useObjectGesture(scale)
 useShortcuts(selectedId, editingId)
@@ -75,4 +91,5 @@ function onEdit(object: BoardObject) {
     @change="changes => updateStyle(selectedObject!.id, changes)"
   />
   <ObjectToolbar @add="onAdd" />
+  <BoardSwitcher />
 </template>
